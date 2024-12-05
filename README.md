@@ -15,6 +15,7 @@ The terraform part will create the virtual machines on Digital Ocean for you. Th
 Terraform will create an inventory file for Ansible. Based on the template in `templates/ansible_inventory.tpl`. I am adding the virtual machine IP address in the inventory as DNS sometimes is slow to update. 
 
 ```sh
+$ terraform init
 $ terraform plan
 $ terraform apply
 ```

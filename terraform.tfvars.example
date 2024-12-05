@@ -14,7 +14,8 @@ school = "skolan"
 domain = "cloud.com"
 
 # Private SSH key for login to the created virtual machines (root account)
-ssh_key = "~/.ssh/id_rsa"
+ssh_private_key = "~/.ssh/id_digitalocean"
+ssh_public_key = "~/.ssh/id_digitalocean.pub"
 
 # Digital Ocean API-key
 do_token = "dop_"

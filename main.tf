@@ -10,12 +10,18 @@ terraform {
 variable "number_servers" {}
 variable "do_token" {}
 variable "school" {}
-variable "sshkey" {}
+variable "ssh_private_key" {}
+variable "ssh_public_key" {}
 variable "project_name" {}
 variable "domain" {}
 
 provider "digitalocean" {
   token = var.do_token
+}
+
+resource "digitalocean_ssh_key" "ssh-key" {
+  name       = "Labserver public ssh key"
+  public_key = file(var.ssh_public_key)
 }
 
 resource "digitalocean_project" "do-project" {
@@ -31,14 +37,14 @@ resource "digitalocean_droplet" "do-droplet" {
   name = "server-${format("%02d", count.index+1)}"
   region = "ams3"
   size = "s-1vcpu-2gb"
-  ssh_keys = [ 37440099 ]
+  ssh_keys = [digitalocean_ssh_key.ssh-key.fingerprint]
   tags = [ var.school, var.project_name ]
 
   connection {
     host = self.ipv4_address
     user = "root"
     type = "ssh"
-    private_key = file(var.sshkey)
+    private_key = file(var.ssh_private_key)
     timeout = "2m"
   }
 

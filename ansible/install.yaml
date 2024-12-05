@@ -1,0 +1,118 @@
+- hosts: labservers
+  user: root
+  gather_facts: no
+
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    ssh_user: "labuser"
+    ssh_pass: "SET_YOUR_PASSWORD"
+
+  tasks:
+    - name: Wait for SSH
+      wait_for_connection:
+        delay: 5
+        timeout: 300
+
+    - name: Set timezone
+      community.general.timezone:
+        name: Europe/Stockholm
+
+    - name: Upgrade all packages
+      ansible.builtin.package:
+        name: '*'
+        state: latest
+        update_cache: true
+
+    - name: Install packages
+      ansible.builtin.package:
+        name:
+          - man-pages
+          - nano
+          - podman
+          - git-core
+          - jq
+        state: latest
+
+    - name: Import EPEL GPG key
+      rpm_key:
+        key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9
+        state: present
+
+    - name: Enable EPEL-repo
+      ansible.builtin.dnf:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        state: present
+
+    - name: Install fail2ban
+      ansible.builtin.dnf:
+        name: fail2ban
+        update_cache: yes
+        state: present
+
+    - name: Create fail2ban configuration
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [DEFAULT]
+          bantime  = 21600
+          findtime  = 600
+          maxretry = 3
+          banaction = firewallcmd-rich-rules[actiontype=<multiport>]
+          
+          [sshd]
+          enabled = true
+
+    - name: Start fail2ban service
+      ansible.builtin.systemd:
+        state: started
+        enabled: yes
+        name: fail2ban
+
+    - name: Set nano as default editor
+      ansible.builtin.lineinfile:
+        path: /etc/profile
+        line: export EDITOR=nano
+        create: yes
+
+    - name: Set password for user
+      ansible.builtin.user:
+        name: "{{ ssh_user }}"
+        groups: wheel
+        append: yes
+        createhome: yes
+        state: present
+        password: "{{ ssh_pass | password_hash('sha512') }}"
+
+    - name: Force user to change password at first login
+      ansible.builtin.command: chage -d 0 "{{ ssh_user }}"
+
+    - name: Remove cloud-init ssh config (Digital Ocean)
+      ansible.builtin.file:
+        path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+        state: absent
+     
+    - name: Allow password login for ssh
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: '^#PasswordAuthentication yes'
+        line: 'PasswordAuthentication yes'
+
+    - name: Restart ssh service
+      ansible.builtin.systemd:
+        state: restarted
+        name: sshd
+
+    - name: Activate Firewalld
+      ansible.builtin.systemd:
+        name: firewalld
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Open port for ssh in firewalld
+      ansible.builtin.firewalld:
+        service: ssh
+        permanent: yes
+        state: enabled
+        immediate: yes

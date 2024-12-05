@@ -1,0 +1,21 @@
+
+# How many virtual machines do you want?
+number_servers = 20
+
+# A project name, for example class name or course name.
+# Keep it simple, and only a-z0-9 as it is used in domain name.
+project_name = "datorkurs"
+
+
+# This is used for tagging the virtual machines in Digital Ocean
+school = "skolan"
+
+# The domain (i.e. cloud.com) to use. Your domain must be manageable in Digital Ocean
+domain = "cloud.com"
+
+# Private SSH key for login to the created virtual machines (root account)
+ssh_key = "~/.ssh/id_rsa"
+
+# Digital Ocean API-key
+do_token = "dop_"
+
